@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Published content</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e5e4e0;
+    --text: #1f1e1c;
+    --muted: #6b6a66;
+    --accent: #185fa5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 48px 20px 72px;
+    background: var(--bg);
+    color: var(--text);
+    font: 400 15px/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 500; margin: 0 0 6px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 32px; }
+  .sub code { background: #efeeea; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 10px;
+  }
+  .row { display: flex; gap: 12px; align-items: baseline; }
+  time {
+    flex: none;
+    color: var(--muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .title { font-weight: 500; font-size: 15px; }
+  .title a { color: var(--accent); text-decoration: none; }
+  .title a:hover { text-decoration: underline; }
+  p.summary { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+  .tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    font-size: 11px;
+    color: var(--accent);
+    background: #e6f1fb;
+    border-radius: 4px;
+    padding: 2px 7px;
+  }
+  .empty, .error { color: var(--muted); font-size: 13px; padding: 24px 0; }
+  .error { color: #a32d2d; }
+  footer {
+    margin-top: 36px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 12px;
+  }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Published content</h1>
+  <p class="sub">Also available as machine-readable JSON: <code>data/latest.json</code> &middot; <code>data/all.json</code> &middot; <code>data/meta.json</code></p>
+  <ul id="list"><li class="empty">Loading&hellip;</li></ul>
+  <footer id="foot"></footer>
+</div>
+
+<script>
+(async () => {
+  const list = document.getElementById('list');
+  const foot = document.getElementById('foot');
+
+  try {
+    const res = await fetch('data/latest.json', { cache: 'no-cache' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const items = data.items || [];
+
+    if (!items.length) {
+      list.innerHTML = '<li class="empty">No entries yet.</li>';
+    } else {
+      list.innerHTML = items.map(it => {
+        const title = it.url
+          ? `<a href="${esc(it.url)}" rel="noopener">${esc(it.title)}</a>`
+          : esc(it.title);
+        const tags = (it.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join('');
+        return `<li>
+          <div class="row"><time>${esc(it.date)}</time><span class="title">${title}</span></div>
+          ${it.summary ? `<p class="summary">${esc(it.summary)}</p>` : ''}
+          ${tags ? `<div class="tags">${tags}</div>` : ''}
+        </li>`;
+      }).join('');
+    }
+
+    const n = data.total === 1 ? '1 entry' : `${data.total} entries`;
+    foot.innerHTML = `${n} &middot; last updated ${esc(data.generated_at)} &middot; ` +
+      `<a href="data/all.json">view full JSON</a>`;
+  } catch (err) {
+    list.innerHTML = `<li class="error">Failed to load: ${esc(err.message)}</li>`;
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
+  }
+})();
+</script>
+</body>
+</html>

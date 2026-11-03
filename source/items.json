@@ -1,0 +1,22 @@
+[
+  {
+    "id": "2026-11-03-first-entry",
+    "date": "2026-11-03",
+    "title": "First published entry",
+    "summary": "This is a sample record. Replace it with your own content; the build script turns the source file into a public data feed.",
+    "url": "",
+    "tags": [
+      "example"
+    ]
+  },
+  {
+    "id": "2026-11-02-setup",
+    "date": "2026-11-02",
+    "title": "Repository initialized",
+    "summary": "Project layout, build script, and the scheduled publishing workflow are in place.",
+    "url": "",
+    "tags": [
+      "changelog"
+    ]
+  }
+]
