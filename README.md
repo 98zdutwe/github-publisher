@@ -46,6 +46,44 @@ python scripts/new_entry.py update --id ID [--title ...] [--summary ...]
 python scripts/new_entry.py remove --id ID
 ```
 
+#### Custom fields
+
+Any extra field you add is preserved by the build and appears verbatim in the
+public JSON. There is no schema to update.
+
+```bash
+python scripts/new_entry.py add --title "Release 1.2" --field hash=4wtuwuq95qlsg
+python scripts/new_entry.py update --id 2026-11-02-release-1-2 --field hash=abc123
+```
+
+`--field` can be repeated. Values that parse as JSON are stored as that type
+(`42` becomes a number, `true` becomes a boolean); everything else stays a
+string. To attach several at once:
+
+```bash
+python scripts/new_entry.py add --title "Build 7" \
+  --field hash=4wtuwuq95qlsg --field build=7 --field stable=true
+```
+
+The result in `public/data/latest.json`:
+
+```json
+{
+  "id": "2026-11-02-build-7",
+  "date": "2026-11-02",
+  "title": "Build 7",
+  "summary": "",
+  "url": "",
+  "tags": [],
+  "hash": "4wtuwuq95qlsg",
+  "build": 7,
+  "stable": true
+}
+```
+
+Not every reader needs the same fields, so keep names short and stable: once
+someone's code reads `hash`, renaming it breaks them.
+
 Use the helper rather than editing `items.json` by hand: a single missing comma
 makes the JSON invalid and the build fails. If you do edit it by hand,
 `./publish.sh` will report the exact line and column of any syntax error.

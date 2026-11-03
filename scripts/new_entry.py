@@ -17,17 +17,22 @@ Options for add / update:
     --tags a,b,c          comma separated
     --date YYYY-MM-DD     defaults to today
     --id ID               defaults to <date>-<slug of title>
+    --field KEY=VALUE     any extra field, repeatable. Numbers and true/false
+                          are stored as their JSON types, everything else as text.
 
 Examples:
     python scripts/new_entry.py add --title "Weekly notes, week 45" \
         --summary "Three things worth sharing." --tags notes,weekly
+
+    python scripts/new_entry.py add --title "Release 1.2" \
+        --field hash=4wtuwuq95qlsg --field build=42
 
     python scripts/new_entry.py update --id 2026-11-09-weekly-notes-week-45 \
         --summary "Revised summary."
 
     python scripts/new_entry.py remove --id 2026-11-02-setup
 
-After editing, run ./publish.sh to build and push.
+After editing, run: python publish.py
 """
 
 from __future__ import annotations
@@ -46,6 +51,21 @@ SOURCE = ROOT / "source" / "items.json"
 def slug(text: str, limit: int = 40) -> str:
     s = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
     return s[:limit] or "entry"
+
+
+def parse_fields(pairs: list[str] | None) -> dict:
+    """Turn ['hash=abc', 'build=42'] into {'hash': 'abc', 'build': 42}."""
+    out: dict = {}
+    for pair in pairs or []:
+        key, sep, value = pair.partition("=")
+        key = key.strip()
+        if not sep or not key:
+            raise SystemExit(f"--field expects KEY=VALUE, got: {pair!r}")
+        try:
+            out[key] = json.loads(value)
+        except json.JSONDecodeError:
+            out[key] = value
+    return out
 
 
 def load() -> list[dict]:
@@ -103,6 +123,7 @@ def cmd_add(args: argparse.Namespace) -> int:
         "url": args.url or "",
         "tags": [t.strip() for t in (args.tags or "").split(",") if t.strip()],
     }
+    entry.update(parse_fields(args.field))
     items.append(entry)
     save(items)
     print(f"added: {entry_id}")
@@ -123,6 +144,8 @@ def cmd_update(args: argparse.Namespace) -> int:
         entry["date"] = args.date
     if args.tags is not None:
         entry["tags"] = [t.strip() for t in args.tags.split(",") if t.strip()]
+    if args.field:
+        entry.update(parse_fields(args.field))
 
     save(items)
     print(f"updated: {args.id}")
@@ -156,6 +179,8 @@ def main() -> int:
     p_add.add_argument("--tags")
     p_add.add_argument("--date")
     p_add.add_argument("--id")
+    p_add.add_argument("--field", action="append", metavar="KEY=VALUE",
+                       help="extra field, repeatable")
     p_add.set_defaults(func=cmd_add)
 
     p_upd = sub.add_parser("update", help="change fields of an existing entry")
@@ -165,6 +190,8 @@ def main() -> int:
     p_upd.add_argument("--url")
     p_upd.add_argument("--tags")
     p_upd.add_argument("--date")
+    p_upd.add_argument("--field", action="append", metavar="KEY=VALUE",
+                       help="extra field, replace or add, repeatable")
     p_upd.set_defaults(func=cmd_update)
 
     p_rm = sub.add_parser("remove", help="delete an entry")
